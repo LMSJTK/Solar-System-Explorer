@@ -1,0 +1,5 @@
+{
+  "name": "Solar Explorer AI",
+  "description": "Explore a stylized solar system with a joystick-controlled spaceship. Features an AI co-pilot providing real-time information about celestial bodies using the Gemini API.",
+  "requestFramePermissions": []
+}
