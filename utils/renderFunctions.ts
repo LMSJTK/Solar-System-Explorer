@@ -10,9 +10,13 @@ export const renderSolarSystem = (
   asteroids: Asteroid[],
   ship: ShipState,
   autopilotActive: boolean,
-  autopilotTarget: string | null
+  autopilotTarget: string | null,
+  cameraShake: number = 0
 ) => {
-  ctx.translate(width / 2 - camera.x, height / 2 - camera.y);
+  // Apply camera shake
+  const shakeX = cameraShake > 0.1 ? (Math.random() - 0.5) * cameraShake : 0;
+  const shakeY = cameraShake > 0.1 ? (Math.random() - 0.5) * cameraShake : 0;
+  ctx.translate(width / 2 - camera.x + shakeX, height / 2 - camera.y + shakeY);
 
   // Stars
   ctx.fillStyle = '#FFF';
@@ -83,6 +87,18 @@ export const renderSolarSystem = (
     ctx.textAlign = 'center';
     ctx.fillText(body.name, x, y + body.radius + 15);
   });
+
+  // Ship Trail
+  if (ship.trail && ship.trail.length > 1) {
+    ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ship.trail.forEach((point, i) => {
+      if (i === 0) ctx.moveTo(point.x, point.y);
+      else ctx.lineTo(point.x, point.y);
+    });
+    ctx.stroke();
+  }
 
   // Ship
   ctx.translate(ship.position.x, ship.position.y);

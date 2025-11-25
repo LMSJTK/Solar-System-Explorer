@@ -6,7 +6,7 @@ import { OrbitHud } from './huds/OrbitHud';
 import { RaidenHud } from './huds/RaidenHud';
 import { INITIAL_BODIES, MAX_SPEED, SHIP_ACCELERATION, SHIP_FRICTION } from '../constants';
 import { CelestialBody, ShipState, Vector2D, Star, Asteroid, OrbitSimState } from '../types';
-import { getPlanetDescription } from '../services/geminiService';
+import { getPlanetDescription, chatWithShipComputer } from '../services/geminiService';
 import { audioService } from '../services/audioService';
 import { useGameState } from '../hooks/useGameState';
 import { useArcadeEngine } from '../hooks/useArcadeEngine';
@@ -36,6 +36,9 @@ export const SolarSystem: React.FC = () => {
     toggleMute,
     resetArcade,
     resetRaiden,
+    toggleChat,
+    addChatMessage,
+    setChatLoading,
   } = useGameState();
 
   // Game Engine Hooks
@@ -55,7 +58,8 @@ export const SolarSystem: React.FC = () => {
     position: { x: 800, y: 0 },
     velocity: { x: 0, y: 2 },
     rotation: 0,
-    thrusting: false
+    thrusting: false,
+    trail: []
   });
 
   const joystickVectorRef = useRef<Vector2D>({ x: 0, y: 0 });
@@ -65,6 +69,7 @@ export const SolarSystem: React.FC = () => {
   const starsRef = useRef<Star[]>([]);
   const asteroidsRef = useRef<Asteroid[]>([]);
   const cameraRef = useRef<Vector2D>({ x: 0, y: 0 });
+  const cameraShakeRef = useRef(0);
 
   // --- Orbit Sim Refs ---
   const orbitSimRef = useRef<OrbitSimState>({
@@ -146,6 +151,39 @@ export const SolarSystem: React.FC = () => {
     setAiDescription(desc);
     setAiLoading(false);
   };
+
+  const handleSendChatMessage = useCallback(async (message: string) => {
+    handleInteraction();
+
+    // Add user message
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user' as const,
+      content: message,
+      timestamp: Date.now(),
+      planet: state.closestBody || undefined
+    };
+    addChatMessage(userMessage);
+
+    // Get AI response
+    setChatLoading(true);
+    const conversationHistory = state.chatMessages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+
+    const response = await chatWithShipComputer(message, state.closestBody, conversationHistory);
+
+    const assistantMessage = {
+      id: `assistant-${Date.now()}`,
+      role: 'assistant' as const,
+      content: response,
+      timestamp: Date.now(),
+      planet: state.closestBody || undefined
+    };
+    addChatMessage(assistantMessage);
+    setChatLoading(false);
+  }, [state.closestBody, state.chatMessages, addChatMessage, setChatLoading]);
 
   // --- Minigame Helpers: Arcade ---
   const startArcadeMinigame = useCallback(() => {
@@ -359,10 +397,14 @@ export const SolarSystem: React.FC = () => {
         }
 
         const { collision, scoreGain } = arcadeEngine.updatePhysics(width, height, shipRef.current.position, state.arcadeGameOver);
-        if (scoreGain > 0) setArcadeScore(state.arcadeScore + scoreGain);
+        if (scoreGain > 0) {
+          setArcadeScore(state.arcadeScore + scoreGain);
+          cameraShakeRef.current = 5; // Small shake on asteroid destroy
+        }
         if (collision) {
           setArcadeGameOver(true);
           shipRef.current.thrusting = false;
+          cameraShakeRef.current = 15; // Big shake on ship destroy
         }
 
         if (arcadeEngine.asteroidsRef.current.length === 0 && !state.arcadeGameOver) {
@@ -435,6 +477,13 @@ export const SolarSystem: React.FC = () => {
         shipRef.current.position.x += shipRef.current.velocity.x;
         shipRef.current.position.y += shipRef.current.velocity.y;
 
+        // Update ship trail
+        if (!shipRef.current.trail) shipRef.current.trail = [];
+        if (shipRef.current.trail.length > 100) shipRef.current.trail.shift();
+        if (speed > 0.5) { // Only add trail when moving
+          shipRef.current.trail.push({ x: shipRef.current.position.x, y: shipRef.current.position.y });
+        }
+
         cameraRef.current.x += (shipRef.current.position.x - cameraRef.current.x) * 0.1;
         cameraRef.current.y += (shipRef.current.position.y - cameraRef.current.y) * 0.1;
 
@@ -464,7 +513,14 @@ export const SolarSystem: React.FC = () => {
       } else if (state.gameMode === 'arcade') {
         renderArcadeMode(ctx, shipRef.current, arcadeEngine.bulletsRef.current, arcadeEngine.asteroidsRef.current, state.arcadeGameOver);
       } else {
-        renderSolarSystem(ctx, width, height, cameraRef.current, starsRef.current, bodiesRef.current, asteroidsRef.current, shipRef.current, state.autopilotActive, autopilotTargetRef.current);
+        renderSolarSystem(ctx, width, height, cameraRef.current, starsRef.current, bodiesRef.current, asteroidsRef.current, shipRef.current, state.autopilotActive, autopilotTargetRef.current, cameraShakeRef.current);
+      }
+
+      // Decay camera shake
+      if (cameraShakeRef.current > 0.1) {
+        cameraShakeRef.current *= 0.9;
+      } else {
+        cameraShakeRef.current = 0;
       }
 
       ctx.restore();
@@ -502,12 +558,17 @@ export const SolarSystem: React.FC = () => {
           aiDescription={state.aiDescription}
           isAiLoading={state.isAiLoading}
           isMuted={state.isMuted}
+          chatOpen={state.chatOpen}
+          chatMessages={state.chatMessages}
+          chatLoading={state.chatLoading}
           onToggleMute={toggleMuteHandler}
           onEngageAutopilot={engageAutopilot}
           onStartArcade={startArcadeMinigame}
           onStartOrbitSim={startOrbitSim}
           onStartRaiden={startRaiden}
           onDeepScan={handleDeepScan}
+          onToggleChat={toggleChat}
+          onSendChatMessage={handleSendChatMessage}
         />
       )}
 

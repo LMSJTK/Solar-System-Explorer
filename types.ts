@@ -30,6 +30,7 @@ export interface ShipState {
   velocity: Vector2D;
   rotation: number;
   thrusting: boolean;
+  trail?: Vector2D[]; // Optional trail for visual effect
 }
 
 export interface Star {
@@ -143,4 +144,20 @@ export interface RaidenParticle {
   maxLife: number;
   color: string;
   size: number;
+}
+
+// --- Ship Computer Chat Types ---
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  planet?: string; // Context: which planet was nearby when message was sent
+}
+
+export interface ChatState {
+  messages: ChatMessage[];
+  isOpen: boolean;
+  isLoading: boolean;
 }
