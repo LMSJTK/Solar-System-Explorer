@@ -119,3 +119,68 @@ export const getPlanetDescription = async (planetName: string, forceAI: boolean 
     return FALLBACK_MESSAGES[Math.floor(Math.random() * FALLBACK_MESSAGES.length)];
   }
 };
+
+/**
+ * Chat with the ship's AI computer
+ * @param message User's question
+ * @param currentPlanet The planet currently near (for context)
+ * @param conversationHistory Previous messages in the conversation
+ */
+export const chatWithShipComputer = async (
+  message: string,
+  currentPlanet: string | null,
+  conversationHistory: { role: 'user' | 'assistant'; content: string }[]
+): Promise<string> => {
+  if (!ai) {
+    return "Ship computer offline. Unable to establish communications.";
+  }
+
+  try {
+    const modelId = 'gemini-2.5-flash';
+
+    const systemContext = currentPlanet
+      ? `You are the ship's AI computer. We are currently near ${currentPlanet}.`
+      : `You are the ship's AI computer. We are in deep space.`;
+
+    // Build conversation context
+    let conversationContext = '';
+    conversationHistory.slice(-6).forEach(msg => {
+      conversationContext += `${msg.role === 'user' ? 'Pilot' : 'Computer'}: ${msg.content}\n`;
+    });
+
+    const prompt = `${systemContext}
+
+${conversationContext ? `Recent conversation:\n${conversationContext}\n` : ''}Pilot: ${message}
+Computer:
+
+Instructions:
+- Respond in character as a knowledgeable, slightly formal AI ship computer
+- Keep responses concise (1-3 sentences)
+- If asked about the current planet, provide interesting facts
+- Be helpful but maintain a professional tone
+- Do not use markdown formatting
+- Stay immersive and sci-fi themed`;
+
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: prompt,
+    });
+
+    return response.text || "Communications error.";
+  } catch (error: any) {
+    console.error("Error in ship computer chat:", error);
+
+    const isRateLimit =
+      error?.status === 429 ||
+      error?.code === 429 ||
+      error?.message?.includes('429') ||
+      error?.message?.includes('quota') ||
+      error?.message?.includes('RESOURCE_EXHAUSTED');
+
+    if (isRateLimit) {
+      return "Communications bandwidth exceeded. Please wait before sending another message.";
+    }
+
+    return "Communications interference detected. Unable to process query.";
+  }
+};

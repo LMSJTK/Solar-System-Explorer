@@ -1,5 +1,6 @@
 import { useReducer, useCallback } from 'react';
 import { getSettings, saveSettings, getHighScores } from '../utils/localStorage';
+import { ChatMessage } from '../types';
 
 export type GameMode = 'solar' | 'arcade' | 'orbit' | 'raiden';
 
@@ -35,6 +36,11 @@ export interface GameState {
 
   // Settings
   isMuted: boolean;
+
+  // Chat
+  chatMessages: ChatMessage[];
+  chatOpen: boolean;
+  chatLoading: boolean;
 }
 
 type GameAction =
@@ -52,7 +58,11 @@ type GameAction =
   | { type: 'SET_RAIDEN_SHIELD'; payload: number }
   | { type: 'TOGGLE_MUTE' }
   | { type: 'RESET_ARCADE' }
-  | { type: 'RESET_RAIDEN' };
+  | { type: 'RESET_RAIDEN' }
+  | { type: 'TOGGLE_CHAT' }
+  | { type: 'ADD_CHAT_MESSAGE'; payload: ChatMessage }
+  | { type: 'SET_CHAT_LOADING'; payload: boolean }
+  | { type: 'CLEAR_CHAT' };
 
 const gameReducer = (state: GameState, action: GameAction): GameState => {
   switch (action.type) {
@@ -127,6 +137,21 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
         raidenShield: 0
       };
 
+    case 'TOGGLE_CHAT':
+      return { ...state, chatOpen: !state.chatOpen };
+
+    case 'ADD_CHAT_MESSAGE':
+      return {
+        ...state,
+        chatMessages: [...state.chatMessages, action.payload]
+      };
+
+    case 'SET_CHAT_LOADING':
+      return { ...state, chatLoading: action.payload };
+
+    case 'CLEAR_CHAT':
+      return { ...state, chatMessages: [], chatOpen: false };
+
     default:
       return state;
   }
@@ -156,7 +181,10 @@ export const useGameState = () => {
     raidenHp: 100,
     raidenShield: 0,
     raidenHighScore: highScores.raiden,
-    isMuted: settings.isMuted
+    isMuted: settings.isMuted,
+    chatMessages: [],
+    chatOpen: false,
+    chatLoading: false
   };
 
   const [state, dispatch] = useReducer(gameReducer, initialState);
@@ -222,6 +250,22 @@ export const useGameState = () => {
     dispatch({ type: 'RESET_RAIDEN' });
   }, []);
 
+  const toggleChat = useCallback(() => {
+    dispatch({ type: 'TOGGLE_CHAT' });
+  }, []);
+
+  const addChatMessage = useCallback((message: ChatMessage) => {
+    dispatch({ type: 'ADD_CHAT_MESSAGE', payload: message });
+  }, []);
+
+  const setChatLoading = useCallback((loading: boolean) => {
+    dispatch({ type: 'SET_CHAT_LOADING', payload: loading });
+  }, []);
+
+  const clearChat = useCallback(() => {
+    dispatch({ type: 'CLEAR_CHAT' });
+  }, []);
+
   return {
     state,
     setGameMode,
@@ -239,5 +283,9 @@ export const useGameState = () => {
     toggleMute,
     resetArcade,
     resetRaiden,
+    toggleChat,
+    addChatMessage,
+    setChatLoading,
+    clearChat,
   };
 };

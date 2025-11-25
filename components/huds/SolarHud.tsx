@@ -1,7 +1,8 @@
 import React from 'react';
-import { Rocket, Volume2, VolumeX, Gamepad2, Globe, Crosshair, Info, Sparkles, Loader2 } from 'lucide-react';
+import { Rocket, Volume2, VolumeX, Gamepad2, Globe, Crosshair, Info, Sparkles, Loader2, MessageSquare } from 'lucide-react';
 import { INITIAL_BODIES } from '../../constants';
-import { ShipState } from '../../types';
+import { ShipState, ChatMessage } from '../../types';
+import { ChatOverlay } from '../ChatOverlay';
 
 interface SolarHudProps {
   shipRef: React.MutableRefObject<ShipState>;
@@ -11,12 +12,17 @@ interface SolarHudProps {
   aiDescription: string | null;
   isAiLoading: boolean;
   isMuted: boolean;
+  chatOpen: boolean;
+  chatMessages: ChatMessage[];
+  chatLoading: boolean;
   onToggleMute: (e: React.MouseEvent) => void;
   onEngageAutopilot: (target: string) => void;
   onStartArcade: () => void;
   onStartOrbitSim: () => void;
   onStartRaiden: () => void;
   onDeepScan: () => void;
+  onToggleChat: () => void;
+  onSendChatMessage: (message: string) => void;
 }
 
 export const SolarHud: React.FC<SolarHudProps> = ({
@@ -27,12 +33,17 @@ export const SolarHud: React.FC<SolarHudProps> = ({
   aiDescription,
   isAiLoading,
   isMuted,
+  chatOpen,
+  chatMessages,
+  chatLoading,
   onToggleMute,
   onEngageAutopilot,
   onStartArcade,
   onStartOrbitSim,
   onStartRaiden,
   onDeepScan,
+  onToggleChat,
+  onSendChatMessage,
 }) => {
   return (
     <>
@@ -42,9 +53,20 @@ export const SolarHud: React.FC<SolarHudProps> = ({
             <h1 className="text-cyan-400 font-bold text-lg flex items-center gap-2">
               <Rocket size={18} /> Solar Explorer
             </h1>
-            <button onClick={onToggleMute} className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded-full text-gray-300" title={isMuted ? "Unmute" : "Mute"}>
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={onToggleChat}
+                className={`p-1.5 rounded-full text-gray-300 transition-colors ${
+                  chatOpen ? 'bg-green-600 hover:bg-green-500' : 'bg-gray-800 hover:bg-gray-700'
+                }`}
+                title="Ship Computer Chat"
+              >
+                <MessageSquare size={16} />
+              </button>
+              <button onClick={onToggleMute} className="p-1.5 bg-gray-800 hover:bg-gray-700 rounded-full text-gray-300" title={isMuted ? "Unmute" : "Mute"}>
+                {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </button>
+            </div>
           </div>
           <div className="text-xs text-gray-400">
             System: {autopilotActive ? 'Orbit Sync Engaged' : 'Manual Control'}
@@ -142,6 +164,15 @@ export const SolarHud: React.FC<SolarHudProps> = ({
           <div>VEL: {Math.abs(Math.round(Math.sqrt(shipRef.current.velocity.x**2 + shipRef.current.velocity.y**2) * 10) / 10)}</div>
         </div>
       </div>
+
+      {/* Chat Overlay */}
+      <ChatOverlay
+        isOpen={chatOpen}
+        messages={chatMessages}
+        isLoading={chatLoading}
+        onClose={onToggleChat}
+        onSendMessage={onSendChatMessage}
+      />
     </>
   );
 };
