@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { RaidenState, RaidenEnemy, RaidenPowerUp, RaidenParticle } from '../types';
 import { audioService } from '../services/audioService';
 
@@ -296,9 +296,9 @@ export const useRaidenEngine = () => {
     };
   }, []);
 
-  return {
+  return useMemo(() => ({
     stateRef,
     updatePhysics,
     reset,
-  };
+  }), [updatePhysics, reset]);
 };
