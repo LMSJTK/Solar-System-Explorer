@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
 import { Bullet, MinigameAsteroid } from '../types';
 import { audioService } from '../services/audioService';
 
@@ -127,12 +127,12 @@ export const useArcadeEngine = () => {
     asteroidsRef.current = [];
   }, []);
 
-  return {
+  return useMemo(() => ({
     bulletsRef,
     asteroidsRef,
     spawnAsteroids,
     fireBullet,
     updatePhysics,
     reset,
-  };
+  }), [spawnAsteroids, fireBullet, updatePhysics, reset]);
 };
