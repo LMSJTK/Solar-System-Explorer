@@ -63,6 +63,7 @@ export const SolarSystem: React.FC = () => {
   });
 
   const joystickVectorRef = useRef<Vector2D>({ x: 0, y: 0 });
+  const touchMoveTargetRef = useRef<Vector2D | null>(null); // For direct touch control
   const keysRef = useRef<Set<string>>(new Set());
   const bodiesRef = useRef<CelestialBody[]>(JSON.parse(JSON.stringify(INITIAL_BODIES)));
   const autopilotTargetRef = useRef<string | null>(null);
@@ -307,6 +308,21 @@ export const SolarSystem: React.FC = () => {
       // -- Input Handling --
       let inputX = joystick.x;
       let inputY = joystick.y;
+
+      // Touch-based directional control (ship moves toward touch point)
+      if (touchMoveTargetRef.current && (state.gameMode === 'solar' || state.gameMode === 'arcade')) {
+        const dx = touchMoveTargetRef.current.x - shipRef.current.position.x;
+        const dy = touchMoveTargetRef.current.y - shipRef.current.position.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        // Only apply input if touch is far enough from ship
+        if (dist > 30) {
+          inputX = dx / dist;
+          inputY = dy / dist;
+        }
+      }
+
+      // Keyboard input
       if (keys.has('w') || keys.has('arrowup')) inputY -= 1;
       if (keys.has('s') || keys.has('arrowdown')) inputY += 1;
       if (keys.has('a') || keys.has('arrowleft')) inputX -= 1;
@@ -545,9 +561,50 @@ export const SolarSystem: React.FC = () => {
     toggleMute();
   };
 
+  // Canvas touch handlers for direct ship control
+  const handleCanvasPointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    handleInteraction();
+    if (!canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+
+    // Convert to world coordinates
+    const worldX = canvasX - rect.width / 2 + cameraRef.current.x;
+    const worldY = canvasY - rect.height / 2 + cameraRef.current.y;
+
+    touchMoveTargetRef.current = { x: worldX, y: worldY };
+  }, []);
+
+  const handleCanvasPointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!touchMoveTargetRef.current || !canvasRef.current) return;
+
+    const rect = canvasRef.current.getBoundingClientRect();
+    const canvasX = e.clientX - rect.left;
+    const canvasY = e.clientY - rect.top;
+
+    // Convert to world coordinates
+    const worldX = canvasX - rect.width / 2 + cameraRef.current.x;
+    const worldY = canvasY - rect.height / 2 + cameraRef.current.y;
+
+    touchMoveTargetRef.current = { x: worldX, y: worldY };
+  }, []);
+
+  const handleCanvasPointerUp = useCallback(() => {
+    touchMoveTargetRef.current = null;
+  }, []);
+
   return (
     <div className="relative w-full h-full bg-black overflow-hidden" onPointerDown={handleInteraction}>
-      <canvas ref={canvasRef} className="block w-full h-full" />
+      <canvas
+        ref={canvasRef}
+        className="block w-full h-full"
+        onPointerDown={handleCanvasPointerDown}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerUp={handleCanvasPointerUp}
+        onPointerCancel={handleCanvasPointerUp}
+      />
 
       {/* --- SOLAR MODE HUD --- */}
       {state.gameMode === 'solar' && (
@@ -611,9 +668,9 @@ export const SolarSystem: React.FC = () => {
         />
       )}
 
-      {/* Shared Controls (Joystick) */}
+      {/* Shared Controls (Joystick) - Hidden on mobile, use direct touch instead */}
       {state.gameMode !== 'orbit' && (
-        <div className="absolute bottom-8 left-8 pointer-events-auto">
+        <div className="absolute left-8 pointer-events-auto hidden md:block" style={{ bottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}>
           <Joystick
             onStart={handleInteraction}
             onMove={(vec) => { joystickVectorRef.current = vec; }}
