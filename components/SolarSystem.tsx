@@ -297,8 +297,9 @@ export const SolarSystem: React.FC = () => {
     let animationFrameId: number;
 
     const loop = () => {
-      const width = canvas.width = window.innerWidth;
-      const height = canvas.height = window.innerHeight;
+      // Use canvas client dimensions instead of window dimensions for proper mobile sizing
+      const width = canvas.width = canvas.clientWidth;
+      const height = canvas.height = canvas.clientHeight;
 
       const keys = keysRef.current;
       const joystick = joystickVectorRef.current;
@@ -545,7 +546,7 @@ export const SolarSystem: React.FC = () => {
   };
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden" onPointerDown={handleInteraction}>
+    <div className="relative w-full h-full bg-black overflow-hidden" onPointerDown={handleInteraction}>
       <canvas ref={canvasRef} className="block w-full h-full" />
 
       {/* --- SOLAR MODE HUD --- */}
