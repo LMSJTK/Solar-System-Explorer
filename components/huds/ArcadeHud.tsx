@@ -61,7 +61,8 @@ export const ArcadeHud: React.FC<ArcadeHudProps> = ({
       {!gameOver && (
         <button
           onPointerDown={onFireBullet}
-          className="absolute bottom-32 right-8 w-20 h-20 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center text-red-400 active:bg-red-500/50 active:scale-95 transition-all pointer-events-auto touch-manipulation"
+          className="absolute right-8 w-20 h-20 bg-red-500/20 border-2 border-red-500 rounded-full flex items-center justify-center text-red-400 active:bg-red-500/50 active:scale-95 transition-all pointer-events-auto touch-manipulation"
+          style={{ bottom: 'max(8rem, calc(env(safe-area-inset-bottom, 2rem) + 6rem))' }}
         >
           <Target size={32} />
         </button>
