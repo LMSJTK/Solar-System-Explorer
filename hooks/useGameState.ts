@@ -14,6 +14,7 @@ export interface GameState {
   closestBody: string | null;
   aiDescription: string | null;
   isAiLoading: boolean;
+  fuel: number; // Ship fuel level (0-100)
 
   // Arcade Mode
   arcadeScore: number;
@@ -49,6 +50,7 @@ type GameAction =
   | { type: 'SET_CLOSEST_BODY'; payload: string | null }
   | { type: 'SET_AI_DESCRIPTION'; payload: string | null }
   | { type: 'SET_AI_LOADING'; payload: boolean }
+  | { type: 'SET_FUEL'; payload: number }
   | { type: 'SET_ARCADE_SCORE'; payload: number }
   | { type: 'SET_ARCADE_GAME_OVER'; payload: boolean }
   | { type: 'SET_ORBIT_PARAMS'; payload: Partial<GameState['orbitParams']> }
@@ -84,6 +86,9 @@ const gameReducer = (state: GameState, action: GameAction): GameState => {
 
     case 'SET_AI_LOADING':
       return { ...state, isAiLoading: action.payload };
+
+    case 'SET_FUEL':
+      return { ...state, fuel: action.payload };
 
     case 'SET_ARCADE_SCORE':
       return {
@@ -168,6 +173,7 @@ export const useGameState = () => {
     closestBody: null,
     aiDescription: null,
     isAiLoading: false,
+    fuel: 100,
     arcadeScore: 0,
     arcadeGameOver: false,
     arcadeHighScore: highScores.arcade,
@@ -208,6 +214,10 @@ export const useGameState = () => {
 
   const setAiLoading = useCallback((loading: boolean) => {
     dispatch({ type: 'SET_AI_LOADING', payload: loading });
+  }, []);
+
+  const setFuel = useCallback((fuel: number) => {
+    dispatch({ type: 'SET_FUEL', payload: fuel });
   }, []);
 
   const setArcadeScore = useCallback((score: number) => {
@@ -273,6 +283,7 @@ export const useGameState = () => {
     setClosestBody,
     setAiDescription,
     setAiLoading,
+    setFuel,
     setArcadeScore,
     setArcadeGameOver,
     setOrbitParams,
