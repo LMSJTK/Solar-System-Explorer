@@ -12,6 +12,7 @@ interface SolarHudProps {
   aiDescription: string | null;
   isAiLoading: boolean;
   isMuted: boolean;
+  fuel: number;
   chatOpen: boolean;
   chatMessages: ChatMessage[];
   chatLoading: boolean;
@@ -33,6 +34,7 @@ export const SolarHud: React.FC<SolarHudProps> = ({
   aiDescription,
   isAiLoading,
   isMuted,
+  fuel,
   chatOpen,
   chatMessages,
   chatLoading,
@@ -76,24 +78,24 @@ export const SolarHud: React.FC<SolarHudProps> = ({
           <div className="flex flex-col gap-1">
             <div className="text-xs text-gray-400 flex justify-between">
               <span>Fuel:</span>
-              <span className={shipRef.current.fuel < 20 ? 'text-red-400 animate-pulse' : 'text-cyan-300'}>
-                {Math.round(shipRef.current.fuel)}%
+              <span className={fuel < 20 ? 'text-red-400 animate-pulse' : 'text-cyan-300'}>
+                {Math.round(fuel)}%
               </span>
             </div>
             <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all duration-300 ${
-                  shipRef.current.fuel > 50 ? 'bg-cyan-500' :
-                  shipRef.current.fuel > 20 ? 'bg-yellow-500' :
+                  fuel > 50 ? 'bg-cyan-500' :
+                  fuel > 20 ? 'bg-yellow-500' :
                   'bg-red-500'
                 }`}
-                style={{ width: `${shipRef.current.fuel}%` }}
+                style={{ width: `${fuel}%` }}
               />
             </div>
-            {shipRef.current.fuel < 100 && (
+            {fuel < 100 && (
               <div className="text-[10px] text-gray-500 italic">
-                {shipRef.current.fuel === 0 ? '⚠ No fuel - drifting... (slow solar recharge active)' :
-                 shipRef.current.fuel < 20 ? '⚠ Low fuel - approach the Sun for fast recharge' :
+                {fuel === 0 ? '⚠ No fuel - drifting... (slow solar recharge active)' :
+                 fuel < 20 ? '⚠ Low fuel - approach the Sun for fast recharge' :
                  'Solar panels charging (faster near the Sun)'}
               </div>
             )}

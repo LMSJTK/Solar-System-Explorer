@@ -26,6 +26,7 @@ export const SolarSystem: React.FC = () => {
     setClosestBody,
     setAiDescription,
     setAiLoading,
+    setFuel,
     setArcadeScore,
     setArcadeGameOver,
     setOrbitParams,
@@ -72,6 +73,7 @@ export const SolarSystem: React.FC = () => {
   const asteroidsRef = useRef<Asteroid[]>([]);
   const cameraRef = useRef<Vector2D>({ x: 0, y: 0 });
   const cameraShakeRef = useRef(0);
+  const fuelSyncFrameRef = useRef(0); // Throttle fuel state updates
 
   // --- Orbit Sim Refs ---
   const orbitSimRef = useRef<OrbitSimState>({
@@ -552,6 +554,13 @@ export const SolarSystem: React.FC = () => {
           }
         });
         if (nearest !== state.closestBody) setClosestBody(nearest);
+
+        // Sync fuel to state for UI updates (throttled to every 5 frames = ~12 updates/sec)
+        fuelSyncFrameRef.current++;
+        if (fuelSyncFrameRef.current >= 5) {
+          fuelSyncFrameRef.current = 0;
+          setFuel(shipRef.current.fuel);
+        }
       }
 
       // 2. Render
@@ -582,7 +591,7 @@ export const SolarSystem: React.FC = () => {
 
     loop();
     return () => cancelAnimationFrame(animationFrameId);
-  }, [state, arcadeEngine, raidenEngine, setArcadeScore, setArcadeGameOver, setRaidenScore, setRaidenHp, setRaidenShield, setClosestBody, setAutopilot]);
+  }, [state, arcadeEngine, raidenEngine, setArcadeScore, setArcadeGameOver, setRaidenScore, setRaidenHp, setRaidenShield, setClosestBody, setAutopilot, setFuel]);
 
   const engageAutopilot = useCallback((target: string) => {
     handleInteraction();
@@ -652,6 +661,7 @@ export const SolarSystem: React.FC = () => {
           aiDescription={state.aiDescription}
           isAiLoading={state.isAiLoading}
           isMuted={state.isMuted}
+          fuel={state.fuel}
           chatOpen={state.chatOpen}
           chatMessages={state.chatMessages}
           chatLoading={state.chatLoading}
