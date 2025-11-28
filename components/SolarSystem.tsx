@@ -524,13 +524,18 @@ export const SolarSystem: React.FC = () => {
           shipRef.current.trail.push({ x: shipRef.current.position.x, y: shipRef.current.position.y });
         }
 
-        // Solar recharge mechanic - recharge when near the Sun
+        // Fuel recharge mechanics
+        // 1. Constant base recharge (solar panels always collect ambient light)
+        let rechargeRate = 0.02; // Slow constant recharge
+
+        // 2. Enhanced solar recharge when near the Sun
         const distToSun = Math.sqrt(shipRef.current.position.x**2 + shipRef.current.position.y**2);
         if (distToSun < 200) { // Within 200 units of the Sun
           // Recharge rate increases the closer you are (up to 0.5 per frame when very close)
-          const rechargeRate = Math.max(0.1, (200 - distToSun) / 400);
-          shipRef.current.fuel = Math.min(100, shipRef.current.fuel + rechargeRate);
+          rechargeRate = Math.max(0.1, (200 - distToSun) / 400);
         }
+
+        shipRef.current.fuel = Math.min(100, shipRef.current.fuel + rechargeRate);
 
         cameraRef.current.x += (shipRef.current.position.x - cameraRef.current.x) * 0.1;
         cameraRef.current.y += (shipRef.current.position.y - cameraRef.current.y) * 0.1;

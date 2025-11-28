@@ -92,9 +92,9 @@ export const SolarHud: React.FC<SolarHudProps> = ({
             </div>
             {shipRef.current.fuel < 100 && (
               <div className="text-[10px] text-gray-500 italic">
-                {shipRef.current.fuel === 0 ? '⚠ No fuel - approach the Sun to recharge' :
-                 shipRef.current.fuel < 20 ? '⚠ Low fuel - recharge near the Sun' :
-                 'Recharge near the Sun'}
+                {shipRef.current.fuel === 0 ? '⚠ No fuel - drifting... (slow solar recharge active)' :
+                 shipRef.current.fuel < 20 ? '⚠ Low fuel - approach the Sun for fast recharge' :
+                 'Solar panels charging (faster near the Sun)'}
               </div>
             )}
           </div>
