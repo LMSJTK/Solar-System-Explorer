@@ -31,6 +31,7 @@ export interface ShipState {
   rotation: number;
   thrusting: boolean;
   trail?: Vector2D[]; // Optional trail for visual effect
+  fuel: number; // Current fuel level (0-100)
 }
 
 export interface Star {
