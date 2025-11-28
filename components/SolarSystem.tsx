@@ -147,6 +147,12 @@ export const SolarSystem: React.FC = () => {
     };
   }, []);
 
+  // Background music - play appropriate track for current game mode
+  useEffect(() => {
+    if (!audioService.isAudioInitialized()) return;
+    audioService.playMusicForMode(state.gameMode);
+  }, [state.gameMode]);
+
   const handleDeepScan = async () => {
     if (!state.closestBody) return;
     handleInteraction();
