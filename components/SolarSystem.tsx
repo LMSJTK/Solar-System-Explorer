@@ -59,7 +59,8 @@ export const SolarSystem: React.FC = () => {
     velocity: { x: 0, y: 2 },
     rotation: 0,
     thrusting: false,
-    trail: []
+    trail: [],
+    fuel: 100
   });
 
   const joystickVectorRef = useRef<Vector2D>({ x: 0, y: 0 });
@@ -345,12 +346,24 @@ export const SolarSystem: React.FC = () => {
           while (diff > Math.PI) diff -= Math.PI * 2;
           shipRef.current.rotation += diff * 0.15;
 
-          const acc = SHIP_ACCELERATION;
-          shipRef.current.velocity.x += Math.cos(shipRef.current.rotation) * inputMag * acc;
-          shipRef.current.velocity.y += Math.sin(shipRef.current.rotation) * inputMag * acc;
-          shipRef.current.thrusting = true;
+          // Only thrust if we have fuel (in solar mode) or in arcade mode
+          const canThrust = state.gameMode === 'arcade' || shipRef.current.fuel > 0;
+          if (canThrust) {
+            const acc = SHIP_ACCELERATION;
+            shipRef.current.velocity.x += Math.cos(shipRef.current.rotation) * inputMag * acc;
+            shipRef.current.velocity.y += Math.sin(shipRef.current.rotation) * inputMag * acc;
+            shipRef.current.thrusting = true;
 
-          audioService.setThrust(inputMag);
+            // Consume fuel in solar mode
+            if (state.gameMode === 'solar') {
+              shipRef.current.fuel = Math.max(0, shipRef.current.fuel - 0.1 * inputMag);
+            }
+
+            audioService.setThrust(inputMag);
+          } else {
+            shipRef.current.thrusting = false;
+            audioService.setThrust(0);
+          }
         } else if (state.gameMode === 'solar' && state.autopilotActive && autopilotTargetRef.current) {
           // Solar Autopilot Logic
           const targetBody = bodiesRef.current.find(b => b.name === autopilotTargetRef.current);
@@ -371,10 +384,16 @@ export const SolarSystem: React.FC = () => {
             shipRef.current.rotation += diff * 0.1;
 
             if (dist > targetBody.radius + 150) {
-              shipRef.current.velocity.x += Math.cos(shipRef.current.rotation) * SHIP_ACCELERATION * 0.8;
-              shipRef.current.velocity.y += Math.sin(shipRef.current.rotation) * SHIP_ACCELERATION * 0.8;
-              shipRef.current.thrusting = true;
-              audioService.setThrust(0.5);
+              if (shipRef.current.fuel > 0) {
+                shipRef.current.velocity.x += Math.cos(shipRef.current.rotation) * SHIP_ACCELERATION * 0.8;
+                shipRef.current.velocity.y += Math.sin(shipRef.current.rotation) * SHIP_ACCELERATION * 0.8;
+                shipRef.current.thrusting = true;
+                shipRef.current.fuel = Math.max(0, shipRef.current.fuel - 0.08);
+                audioService.setThrust(0.5);
+              } else {
+                shipRef.current.thrusting = false;
+                audioService.setThrust(0);
+              }
             } else {
               const idealVx = (targetVx + (dx * 0.05));
               const idealVy = (targetVy + (dy * 0.05));
@@ -383,8 +402,12 @@ export const SolarSystem: React.FC = () => {
               shipRef.current.velocity.x += ax;
               shipRef.current.velocity.y += ay;
               const mag = Math.sqrt(ax*ax + ay*ay);
-              shipRef.current.thrusting = mag > 0.05;
-              audioService.setThrust(Math.min(mag * 5, 0.3));
+              const shouldThrust = mag > 0.05 && shipRef.current.fuel > 0;
+              shipRef.current.thrusting = shouldThrust;
+              if (shouldThrust) {
+                shipRef.current.fuel = Math.max(0, shipRef.current.fuel - 0.03 * mag);
+              }
+              audioService.setThrust(shouldThrust ? Math.min(mag * 5, 0.3) : 0);
             }
           }
         } else {
@@ -499,6 +522,14 @@ export const SolarSystem: React.FC = () => {
         if (shipRef.current.trail.length > 100) shipRef.current.trail.shift();
         if (speed > 0.5) { // Only add trail when moving
           shipRef.current.trail.push({ x: shipRef.current.position.x, y: shipRef.current.position.y });
+        }
+
+        // Solar recharge mechanic - recharge when near the Sun
+        const distToSun = Math.sqrt(shipRef.current.position.x**2 + shipRef.current.position.y**2);
+        if (distToSun < 200) { // Within 200 units of the Sun
+          // Recharge rate increases the closer you are (up to 0.5 per frame when very close)
+          const rechargeRate = Math.max(0.1, (200 - distToSun) / 400);
+          shipRef.current.fuel = Math.min(100, shipRef.current.fuel + rechargeRate);
         }
 
         cameraRef.current.x += (shipRef.current.position.x - cameraRef.current.x) * 0.1;

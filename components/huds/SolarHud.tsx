@@ -71,6 +71,34 @@ export const SolarHud: React.FC<SolarHudProps> = ({
           <div className="text-xs text-gray-400">
             System: {autopilotActive ? 'Orbit Sync Engaged' : 'Manual Control'}
           </div>
+
+          {/* Fuel Gauge */}
+          <div className="flex flex-col gap-1">
+            <div className="text-xs text-gray-400 flex justify-between">
+              <span>Fuel:</span>
+              <span className={shipRef.current.fuel < 20 ? 'text-red-400 animate-pulse' : 'text-cyan-300'}>
+                {Math.round(shipRef.current.fuel)}%
+              </span>
+            </div>
+            <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-300 ${
+                  shipRef.current.fuel > 50 ? 'bg-cyan-500' :
+                  shipRef.current.fuel > 20 ? 'bg-yellow-500' :
+                  'bg-red-500'
+                }`}
+                style={{ width: `${shipRef.current.fuel}%` }}
+              />
+            </div>
+            {shipRef.current.fuel < 100 && (
+              <div className="text-[10px] text-gray-500 italic">
+                {shipRef.current.fuel === 0 ? '⚠ No fuel - approach the Sun to recharge' :
+                 shipRef.current.fuel < 20 ? '⚠ Low fuel - recharge near the Sun' :
+                 'Recharge near the Sun'}
+              </div>
+            )}
+          </div>
+
           {autopilotActive && autopilotTarget && (
             <div className="text-xs text-cyan-300 mt-1 animate-pulse">
               Targeting: {autopilotTarget}
